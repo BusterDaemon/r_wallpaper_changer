@@ -28,7 +28,7 @@ pub struct GlobCnf {
     pub interval: u32,
     pub useDirectory: bool,
     pub useUrls: bool,
-    pub wallmode: u8
+    pub wallmode: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -19,4 +19,4 @@ conf:
     "interval": 10 # Интервал смены обоев в секундах
     "useDirectory": true # Использовать папку вместо
     "useUrls": false # Использовать онлайн изображения
-    "wallmode": 1 # Режим заполнения обоев (0 - 5)
+    "wallmode": "Crop" # Режим заполнения обоев (Fit, Center, Crop, Span, Stretch, Tile)

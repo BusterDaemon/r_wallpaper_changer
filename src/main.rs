@@ -13,13 +13,13 @@ pub mod metadata;
 #[command(author, version, about, long_about = None)]
 struct Args {
     #[arg(short, long)]
-    path: String
+    config: String
 }
 
 fn main() {
     let args = Args::parse();
     // Opens a config file
-    let file_p = std::path::Path::new(&args.path).to_str().unwrap();
+    let file_p = std::path::Path::new(&args.config).to_str().unwrap();
 
     //Reading the content from file
     let f = std::fs::File::open(file_p).expect("Must be a file.");
@@ -79,7 +79,17 @@ fn main() {
             Err(_) => continue
         };
         drop(wall_r);
-        let mode = set_mode(wallpaper::Mode::Fit);
+        let mode = set_mode({
+            match configs.conf.global.wallmode.as_str() {
+                "Fit" => wallpaper::Mode::Fit,
+                "Center" => wallpaper::Mode::Center,
+                "Crop" => wallpaper::Mode::Crop,
+                "Span" => wallpaper::Mode::Span,
+                "Stretch" => wallpaper::Mode::Stretch,
+                "Tile" => wallpaper::Mode::Tile,
+                _ => wallpaper::Mode::Center
+            }   
+        });
         let mode_r = match mode {
             Ok(res) => res,
             Err(err) => println!("Can't change wallmode: {:?}", err),
