@@ -18,6 +18,7 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
+    let mut fail_count: u32 = 0;
     // Opens a config file
     let file_p = std::path::Path::new(&args.config).to_str().unwrap();
 
@@ -50,6 +51,10 @@ fn main() {
     }    
 
     loop {
+        if fail_count > 10 {
+            println!("Too much fails: {}", fail_count);
+            std::process::abort();
+        }
         let mut rng = rand::thread_rng();
         let path = &configs.conf.local.directories[rng.gen_range(0..configs.conf.local.directories.len())];    
         let files = get_file_list(path.to_string());
@@ -75,8 +80,12 @@ fn main() {
         println!("Setting wallpaper from file: {}", &img);
         let wall = set_from_path(&img.as_str());
         let wall_r = match wall {
-            Ok(res) => res ,
-            Err(_) => continue
+            Ok(res) => res,
+            Err(err) => {
+                println!("Can't set wallpaper: {:?}", err);
+                fail_count += 1;
+                continue;
+            }
         };
         drop(wall_r);
         let mode = set_mode({
@@ -97,5 +106,6 @@ fn main() {
         drop(mode_r);
 
         std::thread::sleep(std::time::Duration::from_secs(configs.conf.global.interval as u64));
+        fail_count = 0;
     }
 }
