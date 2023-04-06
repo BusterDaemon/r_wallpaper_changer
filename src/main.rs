@@ -17,7 +17,13 @@ fn main() {
         i += 1;
         if arg == "--help" {
             help();
-            std::process::exit(0);
+            std::process::exit({
+                match env::consts::OS {
+                    "linux" => 0,
+                    "windows" => 256,
+                    _ => 0
+                }
+            });
         }
         if arg == "--config" || arg == "-c" {
             cf_path = args[i].to_string();
