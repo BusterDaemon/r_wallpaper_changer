@@ -20,7 +20,7 @@ pub fn get_file_list(path: String) -> Vec<PathBuf> {
         }
     }
     if files.len() < 1 {
-        println!("Too few files");
+        log::error!("No files! Exiting.");
         std::process::exit(1);
     }
     return files.to_vec();        

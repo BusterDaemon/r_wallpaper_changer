@@ -1,8 +1,15 @@
 use image::{self, DynamicImage, ImageError};
 
 pub fn read_metadata(file_p: &String) -> Result<DynamicImage, ImageError> {
-    println!("Reading file: {}", file_p);
-    let img = image::io::Reader::open(std::path::Path::new(&file_p))?.decode();    
+    log::info!("Reading file: {}", file_p);
+
+    let img = image::io::Reader::open(std::path::Path::new(&file_p))?.decode();
+    match &img {
+        Err(err) => {
+            log::warn!("Can't properly read the image: {:?}", err);
+        },
+        Ok(_) => ()
+    }
     return img;
 }
 
@@ -10,10 +17,10 @@ pub fn landscape(coef: f32, img_d: &DynamicImage) -> bool {
     let height = img_d.height() as f32;
     let width = img_d.width() as f32;
     if !(height*coef > width) {
-        println!("Image is landscape");
+        log::info!("Image has landscape orientation");
         return true;
     } else {
-        println!("Image is portrait");
+        log::info!("Image has portrait orientation");
         return false;
     }
 }
@@ -29,12 +36,14 @@ pub fn qual_control(mut minMps: f32, mut maxMps: f32, img_d: &DynamicImage) -> b
         drop(tmp2);
     }
     let mps: f32 = img_d.height() as f32 * img_d.width() as f32;
-    println!("Megapixels: {}", mps);
+
+    log::info!("Megapixels: {}", mps/1_000_000.0);
+
     if mps > minMps * 1_000_000.0 && mps < maxMps * 1_000_000.0 {
-        println!("Image has good quality");
+        log::info!("Image has good quality");
         return true;
     } else {
-        println!("Image has bad quality");
+        log::info!("Image has bad quality");
         return false;
     }
 }
