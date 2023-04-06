@@ -2,23 +2,34 @@ use rand::Rng;
 use serde_yaml::{self};
 use crate::{file_list::{get_file_list, get_rand_image}, metadata::{read_metadata, landscape, qual_control}};
 use self::config::Config;
-use clap::{Parser};
+use std::env;
 
 pub mod config;
 pub mod file_list;
 pub mod metadata;
 
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Args {
-    #[arg(short, long)]
-    config: String
-}
-
 fn main() {
-    let args = Args::parse();
+    // Parsing arguments
+    let args: Vec<String> = env::args().collect();
+    let mut i = 0;
+    let mut cf_path: String = "".to_string();
+    for arg in args.to_vec() {
+        i += 1;
+        if arg == "--help" {
+            help();
+            std::process::exit(0);
+        }
+        if arg == "--config" || arg == "-c" {
+            cf_path = args[i].to_string();
+        }
+    }
+
+    if cf_path == "" {
+        cf_path = "./config.yaml".to_string();
+    }    
+
     // Opens a config file
-    let file_p = std::path::Path::new(&args.config).to_str().unwrap();
+    let file_p = std::path::Path::new(&cf_path).to_str().unwrap();
 
     //Reading the content from file
     let f = std::fs::File::open(file_p).expect("Must be a file.");
@@ -27,7 +38,7 @@ fn main() {
     // Checking critical parameters
     if !configs.conf.global.useDirectory && !configs.conf.global.useUrls {
         println!("Directory mode and URL mode are disabled.");
-        std::process::abort();
+        std::process::exit(1);
     }
 
     if configs.conf.local.landscapeCoef < 1.0 {
@@ -219,4 +230,11 @@ fn setFromFile(configs: &crate::Config) -> bool {
 
         std::thread::sleep(std::time::Duration::from_secs(configs.conf.global.interval.into()));
         return true;
+}
+
+fn help() {
+    print!("Arguments:
+    --config, -c PATH - Path to config file
+    --help - display help message
+    \n");
 }
