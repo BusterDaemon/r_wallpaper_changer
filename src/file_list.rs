@@ -21,7 +21,7 @@ pub fn get_file_list(path: String) -> Vec<PathBuf> {
     }
     if files.len() < 1 {
         println!("Too few files");
-        std::process::abort();
+        std::process::exit(1);
     }
     return files.to_vec();        
 }
