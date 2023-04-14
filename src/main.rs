@@ -138,7 +138,13 @@ fn setFromUrl(configs: &crate::Config) -> bool {
 
     log::info!("URL \"{}\" will be used", url);
 
-    let req = reqwest::blocking::get(url);
+    let req = reqwest::blocking::Client::builder()
+        .danger_accept_invalid_certs(!configs.conf.online.tls)
+        .build()
+        .unwrap()
+        .get(url)
+        .send();
+
     match req.as_ref() {
         Ok(res) => {
             if res.status() != 200 {
