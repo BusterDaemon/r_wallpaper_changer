@@ -3,13 +3,36 @@ use walkdir::WalkDir;
 
 use rand::Rng;
 
+#[derive(Debug)]
+pub struct BlklsError {
+    description: String
+}
+
+impl BlklsError {
+    fn new(msg: &str) -> BlklsError {
+        BlklsError { description: msg.to_string() }
+    }
+}
+
+impl std::fmt::Display for BlklsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.description)
+    }
+}
+
+impl std::error::Error for BlklsError {
+    fn description(&self) -> &str {
+        &self.description
+    }
+}
+
 // Read files in directory
 #[allow(non_snake_case)]
-pub fn get_file_list(path: &Path, config: &crate::config::Config) -> (bool, Vec<PathBuf>) {
+pub fn get_file_list(path: &Path, config: &crate::config::Config) -> Result<Vec<PathBuf>, BlklsError> {
     if config.conf.local.enableFolderBlacklist {
         log::info!("Checking folder name \"{}\" for blacklist words", path.file_name().unwrap().to_str().unwrap().to_string());
         if check_black_list(&path.file_name().unwrap().to_str().unwrap().to_string(), &config.conf.local.blacklist) {
-            return (false, vec![]);
+            return Err(BlklsError::new("Blacklist match."));
         }
     }
 
@@ -19,7 +42,9 @@ pub fn get_file_list(path: &Path, config: &crate::config::Config) -> (bool, Vec<
         .follow_links(false)
         .max_depth(6)
         .contents_first(true);
+
     let files = &mut vec![];
+
     for entry in walker {
         let path = entry.as_ref().unwrap().path();
         if !path.is_dir() {
@@ -29,11 +54,13 @@ pub fn get_file_list(path: &Path, config: &crate::config::Config) -> (bool, Vec<
             }
         }
     }
+
     if files.len() < 1 {
         log::error!("No files! Exiting.");
         std::process::exit(1);
     }
-    return (true, files.to_vec());
+    
+    return Ok(files.to_vec());
 }
 
 // Choose random image from array
@@ -51,9 +78,14 @@ pub fn get_rand_image(list: &Vec<PathBuf>) -> &std::path::Path {
 
 pub fn check_black_list(name: &String, black_list: &Vec<String>) -> bool {
     for word in black_list {
-        if name.contains(word) {
-            log::info!("{} contains \"{}\". Skipping...", name, word);
-            return false;
+        if word.len() > 2 {
+            if name.contains(word) {
+                log::info!("\"{}\" contains \"{}\". Skipping...", name, word);
+                return false;
+            }
+        } else {
+            log::warn!("Blacklist word \"{}\" is too short for checking. Skipping...", word);
+            continue;
         }
     }
     return true;
