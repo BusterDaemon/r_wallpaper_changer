@@ -1,10 +1,20 @@
-use std::{path::{PathBuf}};
+use std::path::{PathBuf, Path};
 use walkdir::WalkDir;
 
 use rand::Rng;
 
 // Read files in directory
-pub fn get_file_list(path: String) -> Vec<PathBuf> {
+#[allow(non_snake_case)]
+pub fn get_file_list(path: &Path, config: &crate::config::Config) -> (bool, Vec<PathBuf>) {
+    if config.conf.local.enableFolderBlacklist {
+        log::info!("Checking folder name \"{}\" for blacklist words", path.file_name().unwrap().to_str().unwrap().to_string());
+        if check_black_list(&path.file_name().unwrap().to_str().unwrap().to_string(), &config.conf.local.blacklist) {
+            return (false, vec![]);
+        }
+    }
+
+    log::info!("Getting file list from folder {}", &path.to_string_lossy());
+
     let walker = WalkDir::new(&path)
         .follow_links(false)
         .max_depth(6)
@@ -23,18 +33,28 @@ pub fn get_file_list(path: String) -> Vec<PathBuf> {
         log::error!("No files! Exiting.");
         std::process::exit(1);
     }
-    return files.to_vec();        
+    return (true, files.to_vec());
 }
 
 // Choose random image from array
-pub fn get_rand_image(list: Vec<PathBuf>) -> String {
-    let mut ret: String = "".to_string();
+pub fn get_rand_image(list: &Vec<PathBuf>) -> &std::path::Path {
+    let mut ret: &std::path::Path = &std::path::Path::new("");
     if list.len() > 1 {
         let mut rng = rand::thread_rng();
-        let file: &String = &list[rng.gen_range(0..list.len())].to_str().unwrap().to_string();
-        ret = file.to_string();
+        let file: &std::path::Path = &list[rng.gen_range(0..list.len())];
+        ret = file;
     } else if list.len() == 1 {
-        ret = list[0].to_str().unwrap().to_string();    
+        ret = &list[0].as_path();
     }
     ret
+}
+
+pub fn check_black_list(name: &String, black_list: &Vec<String>) -> bool {
+    for word in black_list {
+        if name.contains(word) {
+            log::info!("{} contains \"{}\". Skipping...", name, word);
+            return false;
+        }
+    }
+    return true;
 }

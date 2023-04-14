@@ -1,22 +1,23 @@
 conf:
   online:  
-    urls: # Ссылки на изображения или API PiGallery2
-      - "https://pigallery.local/api/gallery/random/{\"type\":100,\"text\":\"\"}"  
-      - "https://gallery.lucfr/api/gallery/random/{\"type\":1,\"list\":[{\"type\":102,\"text\":\"E621\"},{\"type\":14,\"text\":\"\",\"value\":1.8},{\"type\":17,\"text\":\"\",\"landscape\":true}]}"
+    urls: # Ссылки на изображения или API PiGallery2            
+      #- "some URLs here"
     "tls": false # Проверка подлинности сертификата
   local: 
     directories: # Пути к папкам с изображениями
-      - "/home/busterd/Sync/Wallpapers/Helluva Boss/Stolas" 
-      - "/home/busterd/Sync/Wallpapers/Helluva Boss/Blitzo"
-      - "/home/busterd/Sync/Wallpapers/Helluva Boss/Collective"
-      - "/home/busterd/Sync/Wallpapers/Helluva Boss/Stolitz"    
+      #- "some folders here"
     "usePortrait": false # Использовать ли вертикальные изображения вместе с обычными
     "landscapeCoef": 1.2 # Коэффициент по определению ландшафтных изображений (1 - квадратное изображение считается ландшафтным)
     "setQualityControl": true # Проверять ли качество изображений
-    "minMps": 0.9 # Минимальное значение мегапикселей (2 - примерно FullHD)
+    "minMps": 2.0 # Минимальное значение мегапикселей (2 - примерно FullHD)
     "maxMps": 35.0 # Максимальное значение мегапикселей
+    "enableFileBlacklist": false # Использовать фильтр имён для файлов
+    "enableFolderBlacklist": false # Использовать фильтр имён для папок
+    blacklist: # Чёрный список имён для файлов и/или папок
+      #- "Some bad word here"
+      #- "Other bad word here"
   global:
-    "interval": 10 # Интервал смены обоев в секундах
+    "interval": 60 # Интервал смены обоев в секундах
     "useDirectory": true # Использовать папку вместо
-    "useUrls": false # Использовать онлайн изображения
+    "useUrls": true # Использовать онлайн изображения
     "wallmode": "Crop" # Режим заполнения обоев (Fit, Center, Crop, Span, Stretch, Tile)

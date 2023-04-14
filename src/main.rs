@@ -1,6 +1,6 @@
 use rand::Rng;
 use serde_yaml::{self};
-use crate::{file_list::{get_file_list, get_rand_image}, metadata::{read_metadata, landscape, qual_control}};
+use crate::{file_list::{get_file_list, get_rand_image, check_black_list}, metadata::{read_metadata, landscape, qual_control}};
 use self::config::Config;
 use std::env;
 use log;
@@ -47,12 +47,31 @@ fn main() {
 
     //Reading the content from file
     let f = std::fs::File::open(file_p).expect("Must be a file.");
-    let mut configs: Config = serde_yaml::from_reader(f).expect("Can't read values");
+    let mut configs: Config = serde_yaml::from_reader(&f).expect("Can't read values");
+    drop(f);
+    drop(file_p);
 
     // Checking critical parameters
+
+    if configs.conf.global.useDirectory && configs.conf.local.directories.len() < 1 {
+        log::warn!("Directory mode enabled but list is empty. Disabling...");
+        configs.conf.global.useDirectory = false;
+    }
+
+    if configs.conf.global.useUrls && configs.conf.online.urls.len() < 1 {
+        log::warn!("URL mode enabled but list is empty. Disabling...");
+        configs.conf.global.useUrls = false;
+    }
+
     if !configs.conf.global.useDirectory && !configs.conf.global.useUrls {        
         log::error!("Directory mode and URL mode are disabled.");
         std::process::exit(1);
+    }
+
+    if (configs.conf.local.enableFileBlacklist || configs.conf.local.enableFolderBlacklist) && configs.conf.local.blacklist.len() < 1 {
+        log::warn!("Blacklist enabled but list is empty. Disabling...");
+        configs.conf.local.enableFileBlacklist = false;
+        configs.conf.local.enableFolderBlacklist = false;
     }
 
     if configs.conf.local.landscapeCoef < 1.0 {        
@@ -206,15 +225,24 @@ fn setFromUrl(configs: &crate::Config) -> bool {
 #[allow(non_snake_case)]
 fn setFromFile(configs: &crate::Config) -> bool {    
     let mut rng = rand::thread_rng();
-        let path = &configs.conf.local.directories[rng.gen_range(0..configs.conf.local.directories.len())];    
-        let files = get_file_list(path.to_string());
-        
-        let img = get_rand_image(files);
-        let img_d = read_metadata(&img);
+    let path = std::path::Path::new(&configs.conf.local.directories[rng.gen_range(0..configs.conf.local.directories.len())]);
+    let files = get_file_list(path, &configs);
+
+    if files.0 && files.1.len() > 0 {
+
+        let img = get_rand_image(&files.1);
+        if configs.conf.local.enableFileBlacklist {
+            log::info!("Searching for blacklist words");
+            if !check_black_list(&img.file_name().to_owned().unwrap().to_str().unwrap().to_string(), &configs.conf.local.blacklist) {
+                return false;
+            }
+        }
+
+        let img_d = read_metadata(&img.to_str().unwrap().to_string());
         let img_r = match img_d {
             Ok(res) => res,
             Err(_) => return false
-        };
+        };        
         if !configs.conf.local.usePortrait {
             if !landscape(configs.conf.local.landscapeCoef, &img_r) {
                 return false;
@@ -224,11 +252,11 @@ fn setFromFile(configs: &crate::Config) -> bool {
             if !qual_control(configs.conf.local.minMps, configs.conf.local.maxMps, &img_r) {
                 return false;
             }
-        }        
-        
-        log::info!("Setting wallpaper from file: {}", &img);
+        }                
+                
+        log::info!("Setting wallpaper from file: {}", &img.to_str().unwrap().to_string());
 
-        let wall = wallpaper::set_from_path(&img.as_str());
+        let wall = wallpaper::set_from_path(&img.to_str().unwrap());
         let wall_r = match wall {
             Ok(res) => res,
             Err(err) => {
@@ -256,6 +284,9 @@ fn setFromFile(configs: &crate::Config) -> bool {
 
         std::thread::sleep(std::time::Duration::from_secs(configs.conf.global.interval.into()));
         return true;
+    } else {
+        return false;
+    }
 }
 
 fn help() {
