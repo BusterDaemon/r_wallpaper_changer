@@ -2,7 +2,7 @@ use rand::Rng;
 use serde_yaml::{self};
 use crate::{file_list::{get_file_list, get_rand_image, check_black_list}, metadata::{read_metadata, landscape, qual_control}};
 use self::config::Config;
-use std::env;
+use std::{env, mem};
 use log;
 
 pub mod config;
@@ -48,8 +48,8 @@ fn main() {
     //Reading the content from file
     let f = std::fs::File::open(file_p).expect("Must be a file.");
     let mut configs: Config = serde_yaml::from_reader(&f).expect("Can't read values");
-    drop(f);
-    drop(file_p);
+    mem::drop(f);
+    mem::drop(file_p);
 
     // Checking critical parameters
 
@@ -100,7 +100,7 @@ fn main() {
 
             let mut rng = rand::thread_rng();
             let chance = rng.gen_range(0..100);
-            drop(rng);
+            mem::drop(rng);
 
             if chance > 0 && chance < 51 {
                 setFromFile(&configs);
@@ -124,7 +124,7 @@ fn setFromUrl(configs: &crate::Config) -> bool {
         }
         Ok(pass) => pass
     };
-    drop(tm_er);
+    mem::drop(tm_er);
 
     let url: String;
     if configs.conf.online.urls.len() > 1 {
@@ -171,7 +171,7 @@ fn setFromUrl(configs: &crate::Config) -> bool {
                 }
         }
         });
-    drop(img_t);
+    mem::drop(img_t);
 
     let file = std::fs::File::create(img_path.clone());
     let copy_res = std::io::copy(&mut req.unwrap(), &mut file.as_ref().unwrap());
@@ -182,8 +182,8 @@ fn setFromUrl(configs: &crate::Config) -> bool {
             return false;
         }
     };
-    drop(copy_res);
-    drop(file);
+    mem::drop(copy_res);
+    mem::drop(file);
 
     log::info!("Setting wallpaper");
 
@@ -195,8 +195,8 @@ fn setFromUrl(configs: &crate::Config) -> bool {
             return false;
         }
     };
-    drop(res);
-    drop(img_path);
+    mem::drop(res);
+    mem::drop(img_path);
 
     log::info!("Setting wallpaper mode");
 
@@ -214,7 +214,7 @@ fn setFromUrl(configs: &crate::Config) -> bool {
             }
         }
     });
-    drop(mode);
+    mem::drop(mode);
 
     std::thread::sleep(std::time::Duration::from_secs(configs.conf.global.interval.into()));
 
@@ -232,67 +232,74 @@ fn setFromUrl(configs: &crate::Config) -> bool {
 fn setFromFile(configs: &crate::Config) -> bool {    
     let mut rng = rand::thread_rng();
     let path = std::path::Path::new(&configs.conf.local.directories[rng.gen_range(0..configs.conf.local.directories.len())]);
-    let files = get_file_list(path, &configs);
+    let files = get_file_list(path, &configs);    
 
-    if files.0 && files.1.len() > 0 {
+    match files {
+        Err(_) => return false,
+        Ok(_) => (),
+    };  
 
-        let img = get_rand_image(&files.1);
-        if configs.conf.local.enableFileBlacklist {
-            log::info!("Searching for blacklist words");
-            if !check_black_list(&img.file_name().to_owned().unwrap().to_str().unwrap().to_string(), &configs.conf.local.blacklist) {
-                return false;
-            }
+    let img = get_rand_image(&files.as_ref().unwrap());
+    if configs.conf.local.enableFileBlacklist {
+        log::info!("Searching for blacklist words");
+        if !check_black_list(&img.file_name().unwrap().to_str().unwrap().to_string(), &configs.conf.local.blacklist) {
+            return false;
         }
+    }   
 
+    if configs.conf.local.setQualityControl || !configs.conf.local.usePortrait {
         let img_d = read_metadata(&img.to_str().unwrap().to_string());
         let img_r = match img_d {
-            Ok(res) => res,
+            Ok(ref res) => res,
             Err(_) => return false
-        };        
+        };
+
         if !configs.conf.local.usePortrait {
             if !landscape(configs.conf.local.landscapeCoef, &img_r) {
                 return false;
             }
         }
+
         if configs.conf.local.setQualityControl {
             if !qual_control(configs.conf.local.minMps, configs.conf.local.maxMps, &img_r) {
                 return false;
             }
-        }                
-                
-        log::info!("Setting wallpaper from file: {}", &img.to_str().unwrap().to_string());
+        }
 
-        let wall = wallpaper::set_from_path(&img.to_str().unwrap());
-        let wall_r = match wall {
-            Ok(res) => res,
-            Err(err) => {
-                log::warn!("Can't set wallpaper: {:?}", err);
-                return false;
-            }
-        };
-        drop(wall_r);
-
-        let mode = wallpaper::set_mode({
-            match configs.conf.global.wallmode.as_str() {
-                "Fit" => wallpaper::Mode::Fit,
-                "Center" => wallpaper::Mode::Center,
-                "Crop" => wallpaper::Mode::Crop,
-                "Span" => wallpaper::Mode::Span,
-                "Stretch" => wallpaper::Mode::Stretch,
-                "Tile" => wallpaper::Mode::Tile,
-                _ => {
-                    log::warn!("Can't set the mode. Fallback to Center.");
-                    wallpaper::Mode::Center
-                }
-            }   
-        });
-        drop(mode);
-
-        std::thread::sleep(std::time::Duration::from_secs(configs.conf.global.interval.into()));
-        return true;
-    } else {
-        return false;
+        mem::drop(img_d);
     }
+
+    log::info!("Setting wallpaper from file: {}", &img.to_str().unwrap().to_string());
+
+    let wall = wallpaper::set_from_path(&img.to_str().unwrap());
+    let wall_r = match wall {
+        Ok(res) => res,
+        Err(err) => {
+            log::warn!("Can't set wallpaper: {:?}", err);
+            return false;
+        }
+    };
+    mem::drop(wall_r);
+    mem::drop(img);
+
+    let mode = wallpaper::set_mode({
+        match configs.conf.global.wallmode.as_str() {
+            "Fit" => wallpaper::Mode::Fit,
+            "Center" => wallpaper::Mode::Center,
+            "Crop" => wallpaper::Mode::Crop,
+            "Span" => wallpaper::Mode::Span,
+            "Stretch" => wallpaper::Mode::Stretch,
+            "Tile" => wallpaper::Mode::Tile,
+            _ => {
+                log::warn!("Can't set the mode. Fallback to Center.");
+                wallpaper::Mode::Center
+            }
+        }   
+    });
+    mem::drop(mode);
+
+    std::thread::sleep(std::time::Duration::from_secs(configs.conf.global.interval.into()));
+    return true;    
 }
 
 fn help() {
