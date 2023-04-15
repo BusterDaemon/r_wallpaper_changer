@@ -23,3 +23,7 @@ opt-level = "z"
 lto = true
 panic = "abort"
 codegen-units = 1
+#debug = 1
+
+#[rust]
+#debug-infolevel = 1

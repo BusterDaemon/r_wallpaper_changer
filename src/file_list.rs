@@ -26,41 +26,62 @@ impl std::error::Error for BlklsError {
     }
 }
 
-// Read files in directory
+// Get files from directories
 #[allow(non_snake_case)]
 pub fn get_file_list(path: &Path, config: &crate::config::Config) -> Result<Vec<PathBuf>, BlklsError> {
-    if config.conf.local.enableFolderBlacklist {
-        log::info!("Checking folder name \"{}\" for blacklist words", path.file_name().unwrap().to_str().unwrap().to_string());
-        if !check_black_list(&path.file_name().unwrap().to_str().unwrap().to_string(), &config.conf.local.blacklist_folders) {
-            return Err(BlklsError::new("Blacklist match."));
-        }
+    let files: &mut Vec<PathBuf> = &mut vec![];
+    let folders: &mut Vec<PathBuf> = &mut vec![];
+    
+
+    for entry in WalkDir::new(&path).follow_links(false).max_depth(3) {
+        if entry.as_ref().unwrap().path().is_dir() {
+            if config.conf.local.enableFolderBlacklist {
+                if !check_black_list(&entry.as_ref().unwrap().path().to_str().unwrap().to_string(), &config.conf.local.blacklist_folders) {
+                    continue;                    
+                }
+            }
+            folders.push(entry.unwrap().into_path());     
+        }        
     }
 
-    log::info!("Getting file list from folder {}", &path.to_string_lossy());
-
-    let walker = WalkDir::new(&path)
-        .follow_links(false)
-        .max_depth(6)
-        .contents_first(true);
-
-    let files = &mut vec![];
-
-    for entry in walker {
-        let path = entry.as_ref().unwrap().path();
-        if !path.is_dir() {
-            let ext = &path.extension().unwrap().to_os_string();
-            if ext == "jpg" || ext == "png" {
-                files.push(entry.unwrap().into_path());
+    let searcher = |root_f: &Path, file_list: &mut Vec<PathBuf>| -> Result<Vec<PathBuf>, BlklsError> {
+        log::info!("Getting file list from \"{}\"", root_f.to_str().unwrap().to_string());
+        for entry in WalkDir::new(root_f).contents_first(true).follow_links(false) {
+            if !entry.as_ref().unwrap().path().is_dir() {
+                if entry.as_ref().unwrap().path().extension().unwrap().to_os_string() == "jpg" || entry.as_ref().unwrap().path().extension().unwrap().to_os_string() == "png" {
+                    file_list.push(entry.unwrap().into_path());
+                }
             }
         }
-    }
 
-    if files.len() < 1 {
-        log::error!("No files! Exiting.");
-        std::process::exit(1);
-    }
-    
-    return Ok(files.to_vec());
+        if file_list.len() < 1 {
+            return Err(BlklsError::new("File list is empty"));
+        }
+
+        return Ok(file_list.to_vec());
+    };
+
+    if folders.len() < 1 {
+        let files_res = searcher(&path, files);
+
+        match files_res {
+            Ok(ok) => *files = ok,
+            Err(err) => return Err(err)
+        }
+
+        return Ok(files.to_vec());   
+    } else {
+        log::info!("Getting the random folder from the list.");
+        let mut rng = rand::thread_rng();
+        let folder = &folders[rng.gen_range(0..folders.len())];                    
+        
+        let file_res = searcher(&folder.as_path(), files);
+        match file_res {
+            Ok(res) => *files = res,
+            Err(err) => return Err(err)
+        }
+        return Ok(files.to_vec());
+    }    
 }
 
 // Choose random image from array
@@ -80,7 +101,7 @@ pub fn check_black_list(name: &String, black_list: &Vec<String>) -> bool {
     for word in black_list {
         if word.len() > 2 {
             if name.contains(word) {
-                log::info!("\"{}\" contains \"{}\". Skipping...", name, word);
+                log::trace!("\"{}\" contains \"{}\". Skipping...", name, word);
                 return false;
             }
         } else {
