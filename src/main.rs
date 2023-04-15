@@ -239,7 +239,10 @@ fn setFromFile(configs: &crate::Config) -> bool {
     let files = get_file_list(path, &configs);    
 
     match files {
-        Err(_) => return false,
+        Err(err) => {
+            log::warn!("Error: \"{:?}\". Skipping...", err);
+            return false;
+        },
         Ok(_) => (),
     };  
 

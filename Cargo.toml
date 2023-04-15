@@ -18,8 +18,12 @@ log = "0.4.17"
 env_logger = "*"
 
 [profile.release]
-strip = true
-opt-level = "z"
-lto = true
-panic = "abort"
-codegen-units = 1
+#strip = true
+#opt-level = "z"
+#lto = true
+#panic = "abort"
+#codegen-units = 1
+debug = 1
+
+[rust]
+debug-infolevel = 1
