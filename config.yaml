@@ -13,9 +13,11 @@ conf:
     "maxMps": 35.0 # Максимальное значение мегапикселей
     "enableFileBlacklist": false # Использовать фильтр имён для файлов
     "enableFolderBlacklist": false # Использовать фильтр имён для папок
-    blacklist: # Чёрный список имён для файлов и/или папок
+    blacklist_files: # Чёрный список имён для файлов и/или папок
       #- "Some bad word here"
       #- "Other bad word here"
+    blacklist_folders:
+      #- "Some bad folders here"
   global:
     "interval": 60 # Интервал смены обоев в секундах
     "useDirectory": true # Использовать папку вместо

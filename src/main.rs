@@ -68,9 +68,13 @@ fn main() {
         std::process::exit(1);
     }
 
-    if (configs.conf.local.enableFileBlacklist || configs.conf.local.enableFolderBlacklist) && configs.conf.local.blacklist.len() < 1 {
-        log::warn!("Blacklist enabled but list is empty. Disabling...");
+    if configs.conf.local.enableFileBlacklist && configs.conf.local.blacklist_files.len() < 1 {
+        log::warn!("File blacklist enabled but list is empty. Disabling...");
         configs.conf.local.enableFileBlacklist = false;
+    }
+
+    if configs.conf.local.enableFolderBlacklist && configs.conf.local.blacklist_folders.len() < 1 {
+        log::warn!("Folder blacklist enabled but list is empty. Disabling...");
         configs.conf.local.enableFolderBlacklist = false;
     }
 
@@ -242,7 +246,7 @@ fn setFromFile(configs: &crate::Config) -> bool {
     let img = get_rand_image(&files.as_ref().unwrap());
     if configs.conf.local.enableFileBlacklist {
         log::info!("Searching for blacklist words");
-        if !check_black_list(&img.file_name().unwrap().to_str().unwrap().to_string(), &configs.conf.local.blacklist) {
+        if !check_black_list(&img.file_name().unwrap().to_str().unwrap().to_string(), &configs.conf.local.blacklist_files) {
             return false;
         }
     }   
