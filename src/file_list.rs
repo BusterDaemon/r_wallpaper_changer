@@ -31,7 +31,7 @@ impl std::error::Error for BlklsError {
 pub fn get_file_list(path: &Path, config: &crate::config::Config) -> Result<Vec<PathBuf>, BlklsError> {
     if config.conf.local.enableFolderBlacklist {
         log::info!("Checking folder name \"{}\" for blacklist words", path.file_name().unwrap().to_str().unwrap().to_string());
-        if check_black_list(&path.file_name().unwrap().to_str().unwrap().to_string(), &config.conf.local.blacklist) {
+        if !check_black_list(&path.file_name().unwrap().to_str().unwrap().to_string(), &config.conf.local.blacklist_folders) {
             return Err(BlklsError::new("Blacklist match."));
         }
     }

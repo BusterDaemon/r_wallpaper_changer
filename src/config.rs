@@ -22,7 +22,8 @@ pub struct LocalCnf {
     pub maxMps: f32,
     pub enableFileBlacklist: bool,
     pub enableFolderBlacklist: bool,
-    pub blacklist: Vec<String>,
+    pub blacklist_files: Vec<String>,
+    pub blacklist_folders: Vec<String>,
 }
 
 #[allow(non_snake_case)]
