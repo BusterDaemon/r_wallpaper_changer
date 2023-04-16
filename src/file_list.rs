@@ -32,7 +32,6 @@ pub fn get_file_list(path: &Path, config: &crate::config::Config) -> Result<Vec<
     let files: &mut Vec<PathBuf> = &mut vec![];
     let folders: &mut Vec<PathBuf> = &mut vec![];
     
-
     for entry in WalkDir::new(&path).follow_links(false).max_depth(3) {
         if entry.as_ref().unwrap().path().is_dir() {
             if config.conf.local.enableFolderBlacklist {
@@ -49,6 +48,12 @@ pub fn get_file_list(path: &Path, config: &crate::config::Config) -> Result<Vec<
         for entry in WalkDir::new(root_f).contents_first(true).follow_links(false) {
             if !entry.as_ref().unwrap().path().is_dir() {
                 if entry.as_ref().unwrap().path().extension().unwrap().to_os_string() == "jpg" || entry.as_ref().unwrap().path().extension().unwrap().to_os_string() == "png" {
+                    if config.conf.local.enableFileBlacklist {
+                        log::trace!("Checking \"{}\" for blacklist words.", entry.as_ref().unwrap().clone().into_path().to_string_lossy());
+                        if !check_black_list(&entry.as_ref().unwrap().clone().into_path().to_str().unwrap().to_string(), &config.conf.local.blacklist_files) {
+                            continue;
+                        }
+                    }
                     file_list.push(entry.unwrap().into_path());
                 }
             }
