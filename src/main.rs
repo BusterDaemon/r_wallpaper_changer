@@ -1,6 +1,6 @@
 use rand::Rng;
 use serde_yaml::{self};
-use crate::{file_list::{get_file_list, get_rand_image, check_black_list}, metadata::{read_metadata, landscape, qual_control}};
+use crate::{file_list::{get_file_list, get_rand_image}, metadata::{read_metadata, landscape, qual_control}};
 use self::config::Config;
 use std::{env, mem};
 use log;
@@ -39,7 +39,7 @@ fn main() {
     
     env_logger::builder()
         .target(env_logger::Target::Stdout)
-        .filter_level(log::LevelFilter::Trace)
+        .filter_level(log::LevelFilter::Info)
         .init();        
 
     // Opens a config file
@@ -247,12 +247,6 @@ fn setFromFile(configs: &crate::Config) -> bool {
     };  
 
     let img = get_rand_image(&files.as_ref().unwrap());
-    if configs.conf.local.enableFileBlacklist {
-        log::info!("Searching for blacklist words");
-        if !check_black_list(&img.file_name().unwrap().to_str().unwrap().to_string(), &configs.conf.local.blacklist_files) {
-            return false;
-        }
-    }   
 
     if configs.conf.local.setQualityControl || !configs.conf.local.usePortrait {
         let img_d = read_metadata(&img.to_str().unwrap().to_string());
