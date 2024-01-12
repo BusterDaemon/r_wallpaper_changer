@@ -32,8 +32,6 @@ pub fn qual_control(mut minMps: f32, mut maxMps: f32, img_d: &DynamicImage) -> b
         let tmp2 = maxMps;
         maxMps = tmp1;
         minMps = tmp2;
-        drop(tmp1);
-        drop(tmp2);
     }
     let mps: f32 = img_d.height() as f32 * img_d.width() as f32;
 

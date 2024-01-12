@@ -49,7 +49,6 @@ fn main() {
     let f = std::fs::File::open(file_p).expect("Must be a file.");
     let mut configs: Config = serde_yaml::from_reader(&f).expect("Can't read values");
     mem::drop(f);
-    mem::drop(file_p);
 
     // Checking critical parameters
 
@@ -128,7 +127,6 @@ fn setFromUrl(configs: &crate::Config) -> bool {
         }
         Ok(pass) => pass
     };
-    mem::drop(tm_er);
 
     let url: String;
     if configs.conf.online.urls.len() > 1 {
@@ -175,7 +173,6 @@ fn setFromUrl(configs: &crate::Config) -> bool {
                 }
         }
         });
-    mem::drop(img_t);
 
     let file = std::fs::File::create(img_path.clone());
     let copy_res = std::io::copy(&mut req.unwrap(), &mut file.as_ref().unwrap());
@@ -273,15 +270,13 @@ fn setFromFile(configs: &crate::Config) -> bool {
     log::info!("Setting wallpaper from file: {}", &img.to_str().unwrap().to_string());
 
     let wall = wallpaper::set_from_path(&img.to_str().unwrap());
-    let wall_r = match wall {
+    let _wall_r = match wall {
         Ok(res) => res,
         Err(err) => {
             log::warn!("Can't set wallpaper: {:?}", err);
             return false;
         }
     };
-    mem::drop(wall_r);
-    mem::drop(img);
 
     let mode = wallpaper::set_mode({
         match configs.conf.global.wallmode.as_str() {
